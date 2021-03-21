@@ -9,10 +9,12 @@ import {NotePin, Note, Pattern, Instrument, Channel, Synth} from "../synth/synth
 import {SongDocument} from "./SongDocument";
 import {ExportPrompt} from "./ExportPrompt";
 import {ChangePreset} from "./changes";
+import {Communication} from "./Communication"
 
 
 //namespace beepbox {
 	const doc: SongDocument = new SongDocument();
+	new Communication(doc);
 	const editor: SongEditor = new SongEditor(doc);
 	const beepboxEditorContainer: HTMLElement = document.getElementById("beepboxEditorContainer")!;
 	beepboxEditorContainer.appendChild(editor.mainLayer);
