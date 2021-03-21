@@ -24,7 +24,7 @@ declare var DeepDiff: any;
 		constructor(private _doc: SongDocument) {
 			this.username = capitalize(adjectives[Math.floor(Math.random()*adjectives.length)]) + ' ' + animals[Math.floor(Math.random()*animals.length)];
 			this._doc.notifier.watch(this.whenUpdated);
-			this.socket = new WebSocket('ws://localhost:8080');
+			this.socket = new WebSocket('ws://localhost:5000');
 			this.socket.onopen = (event) => {
 				let data = JSON.stringify({ user: this.username, type: 'get-song', date: Date.now() });
 				console.log('send: ', data)
@@ -82,6 +82,9 @@ declare var DeepDiff: any;
 			}
 
 			let changes = DeepDiff.diff(this.currentSong, jsonObject);
+			if(changes == null) {
+				return;
+			}
 			console.log('when updated: ', changes, jsonObject);
 			let data = JSON.stringify({ user: this.username, type: 'change', changes: changes, date: Date.now() });
 			this.socket.send(data);
