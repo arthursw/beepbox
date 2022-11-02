@@ -29,6 +29,13 @@ export class Communication {
 		let w: any = window
 		w._doc = _doc
 		w.communication = this
+		let svg = document.querySelector('svg')
+		svg?.addEventListener('keydown', (event)=> {
+			console.log(event)
+			if(event.key == ' '){
+				w.stopCommunicationTest()
+			}
+		})
 
 		this.username = capitalize(adjectives[Math.floor(Math.random() * adjectives.length)]) + ' ' + animals[Math.floor(Math.random() * animals.length)];
 		this._doc.notifier.watch(this.whenUpdated);
@@ -70,7 +77,9 @@ export class Communication {
 					// let jsonString = JSON.stringify(jsonObject);
 					// this.ignoreWhenUpdated = true;
 					// this._doc.record(new ChangeSong(this._doc, jsonString), true, true);
-					this._doc.song.fromJsonObject(this.convertNotesToArray(jsonObject));
+					jsonObject = this.convertNotesToArray(jsonObject)
+					this.fixNotes(jsonObject)
+					this._doc.song.fromJsonObject(jsonObject);
 					this._doc.notifier.changed();
 					// this.lastSentSong = jsonObject;
 					// console.log('last song:')
@@ -127,6 +136,27 @@ export class Communication {
 			}
 		}
 		return jsonObject
+	}
+
+	public fixNotes(jsonObject:any): void {
+		for(let channel of jsonObject.channels) {
+			for(let pattern of channel.patterns) {
+				pattern.notes = pattern.notes.sort((a:any, b:any)=> a.points[0].tick - b.points[0].tick);
+				let timesToNote = new Map()
+				let notes = []
+				for(let note of pattern.notes) {
+					let name = ''+note.points[0].tick+'-'+note.points[1].tick
+					let existingNote = timesToNote.get(name)
+					if(existingNote != null) {
+						existingNote.pitches = existingNote.pitches.concat(note.pitches)
+					} else {
+						notes.push(note)
+						timesToNote.set(name, note)
+					}
+				}
+				pattern.notes = notes
+			}
+		}
 	}
 
 	public whenUpdated = (): void => {
@@ -217,12 +247,14 @@ w.printNotes = (jsonObject: any)=> {
 		let notesString = '';
 		if(notes instanceof Array) {
 			for(let i=0 ; i<notes.length ; i++) {
-				notesString += notes[i].pitches.join(',') + '|' + notes[i].points[0].tick + '-' + notes[i].points[1].tick + '  ';
+				// notesString += notes[i].pitches.join(',') + '|' + notes[i].points[0].tick + '-' + notes[i].points[1].tick + '  ';
+				notesString += JSON.stringify(notes[i]) + '  '
 			}
 		} else {
 			for(let noteKey in notes) {
 				let note = notes[noteKey]
-				notesString += note.pitches.join(',') + '|' + note.points[0].tick + '-' + note.points[1].tick + '  ';
+				// notesString += note.pitches.join(',') + '|' + note.points[0].tick + '-' + note.points[1].tick + '  ';
+				notesString += JSON.stringify(note) + '  '
 			}
 		}
 		console.log('c' + channel + ': ' + notesString);
@@ -231,7 +263,7 @@ w.printNotes = (jsonObject: any)=> {
 
 w.testCommunication = (channel: number)=> {
 	console.log('--- add note')
-	w.detectHole()
+	// w.detectHole()
 	let jsonObject: any = structuredClone(w._doc.song.toJsonObject(true, 1, true));
 	w.printNotes(jsonObject)
 	let oldJsonObject: any = structuredClone(jsonObject);
@@ -254,6 +286,7 @@ w.testCommunication = (channel: number)=> {
 	// 		notes.splice(noteIndex, 1)
 	// 	}
 	// }
+	w.communication.fixNotes(jsonObject)
 
 	w._doc.song.fromJsonObject(jsonObject);
 	w._doc.notifier.changed();
@@ -270,7 +303,7 @@ w.testCommunication = (channel: number)=> {
 	}
 
 	w.testTimeout = setTimeout(()=>w.testCommunication(channel), Math.random()*500)
-	w.detectHole()
+	// w.detectHole()
 	console.log('--- end add note')
 }
 
